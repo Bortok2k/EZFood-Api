@@ -2,7 +2,7 @@ const Groq = require('groq-sdk');
 const firebase = require('../database/connection');
 const firestore = firebase.firestore();
 
-const groq = new Groq({ apiKey: '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' });
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY }); // ← variable de entorno
 
 const prompts = {
     administrador: `
@@ -38,6 +38,7 @@ administración, finanzas, inventario, clientes y operación general.
 };
 
 const consultarEZBot = async (pregunta, modo = 'general') => {
+    console.log("GROQ KEY:", process.env.GROQ_API_KEY ? "OK" : "UNDEFINED");
     const [ordenesSnap, gastosSnap, insumosSnap, platosSnap] = await Promise.all([
         firestore.collection('Orden').get(),
         firestore.collection('Gasto').get(),
