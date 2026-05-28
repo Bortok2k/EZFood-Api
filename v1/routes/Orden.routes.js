@@ -69,7 +69,7 @@ router.get('/ordenes', ordenController.getOrdenes);
  *       '404':
  *         description: Orden no encontrada
  */
-router.get('/ordenes/:id', ordenController.updateOrden);
+router.put('/ordenes/:id', ordenController.updateOrden); 
 
 /** Update Estado Orden
  * @openapi
