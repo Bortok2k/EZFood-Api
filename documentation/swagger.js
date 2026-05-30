@@ -11,7 +11,7 @@ const options = {
     },
     servers: [
       {
-        url: "https://blitz-api-dev.fly.dev/api/v1",
+        url: "https://ezfood-api.onrender.com/api/v1",
         description: "Host server"
       },
       {
