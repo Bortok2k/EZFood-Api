@@ -52,7 +52,7 @@ const CreateOrden = async (data) => {
         return await firestore.collection('Orden').add({
         id_estado,
         estado_nombre: estadoData.estado,
-        mesa: mesa || 1,   // ← agregar
+        mesa: mesa || "Mesa sin asignar",   // ← agregar
         fecha: now.toISOString().split('T')[0],
         hora: now.toTimeString().split(' ')[0],
         platos: platosData,
