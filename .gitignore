@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+node_modules/
 .env
 Dockerfile
 fly.toml
