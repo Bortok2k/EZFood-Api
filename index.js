@@ -20,6 +20,7 @@ const OrdenRoutes = require('./v1/routes/Orden.routes');
 const facturaRoutes = require('./v1/routes/factura.router');
 const swaggerDocs = require('./documentation/swagger');
 const FacturaRoutes = require('./v1/routes/FacturaElectronica.router');
+const MesaRoutes = require('./v1/routes/Mesa.routes');
 
 
 
@@ -51,6 +52,7 @@ app.use('/api/v1/Orden', OrdenRoutes.routes);
 app.use('/api/v1/factura', facturaRoutes.routes);
 app.use('/api/v1/EZBot', EZBotRoutes.routes);
 app.use('/api/v1/FacturaElectronica', FacturaRoutes.routes);
+app.use('/api/v1/Mesa', MesaRoutes.routes);
 
 //#endregion
 
