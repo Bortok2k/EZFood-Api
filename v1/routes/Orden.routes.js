@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 const ordenController = require('../../controllers/Orden.controller');
+const { requireAdmin, requireEmployee } = require('../../middlewares/auth.middleware');
 
 /** Create Orden
  * @openapi
@@ -35,7 +36,7 @@ const ordenController = require('../../controllers/Orden.controller');
  *       '200':
  *         description: Orden creada correctamente
  */
-router.post('/ordenes', ordenController.createOrden);
+router.post('/ordenes',requireEmployee, ordenController.createOrden);
 
 /** Get All Ordenes
  * @openapi
@@ -48,7 +49,7 @@ router.post('/ordenes', ordenController.createOrden);
  *       '200':
  *         description: Successful operation
  */
-router.get('/ordenes', ordenController.getOrdenes);
+router.get('/ordenes',requireEmployee, ordenController.getOrdenes);
 
 /** Get Orden by ID
  * @openapi
@@ -69,7 +70,7 @@ router.get('/ordenes', ordenController.getOrdenes);
  *       '404':
  *         description: Orden no encontrada
  */
-router.put('/ordenes/:id', ordenController.updateOrden); 
+router.put('/ordenes/:id',requireEmployee, ordenController.updateOrden); 
 
 /** Update Estado Orden
  * @openapi
@@ -98,7 +99,7 @@ router.put('/ordenes/:id', ordenController.updateOrden);
  *       '200':
  *         description: Estado actualizado correctamente
  */
-router.patch('/ordenes/:id/estado', ordenController.updateEstadoOrden);
+router.patch('/ordenes/:id/estado',requireEmployee, ordenController.updateEstadoOrden);
 
 /** Delete Orden
  * @openapi
@@ -117,7 +118,7 @@ router.patch('/ordenes/:id/estado', ordenController.updateEstadoOrden);
  *       '200':
  *         description: Orden eliminada
  */
-router.delete('/ordenes/:id', ordenController.deleteOrden);
+router.delete('/ordenes/:id',requireEmployee, ordenController.deleteOrden);
 
 module.exports = {
     routes: router

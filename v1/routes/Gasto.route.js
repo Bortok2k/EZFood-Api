@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 const GastoController = require('../../controllers/Gasto.controller');
+const { requireAdmin, requireEmployee } = require('../../middlewares/auth.middleware');
 
 /** Create Gasto
  * @openapi
@@ -27,7 +28,7 @@ const GastoController = require('../../controllers/Gasto.controller');
  *       '200':
  *         description: Gasto creado correctamente
  */
-router.post('/gasto', GastoController.CreateGasto);
+router.post('/gasto',requireAdmin, GastoController.CreateGasto);
 
 /** Get All Gastos
  * @openapi
@@ -56,7 +57,7 @@ router.post('/gasto', GastoController.CreateGasto);
  *                       Costo:
  *                         type: number
  */
-router.get('/gasto', GastoController.GetGasto);
+router.get('/gasto',requireAdmin, GastoController.GetGasto);
 
 /** Update Gasto
  * @openapi
@@ -87,7 +88,7 @@ router.get('/gasto', GastoController.GetGasto);
  *       '200':
  *         description: Gasto actualizado correctamente
  */
-router.put('/gasto/:id', GastoController.GastoUpdate);
+router.put('/gasto/:id',requireAdmin, GastoController.GastoUpdate);
 
 /** Delete Gasto
  * @openapi
@@ -107,7 +108,7 @@ router.put('/gasto/:id', GastoController.GastoUpdate);
  *       '200':
  *         description: Gasto eliminado correctamente
  */
-router.delete('/gasto/:id', GastoController.GastoDelete);
+router.delete('/gasto/:id',requireAdmin, GastoController.GastoDelete);
 
 module.exports = {
     routes: router

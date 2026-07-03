@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 const insumoController = require('../../controllers/insumo.controller');
+const { requireAdmin, requireEmployee } = require('../../middlewares/auth.middleware');
 
 /** Create Insumo
  * @openapi
@@ -33,7 +34,7 @@ const insumoController = require('../../controllers/insumo.controller');
  *       '200':
  *         description: Insumo creado correctamente
  */
-router.post('/insumos', insumoController.createInsumo);
+router.post('/insumos',requireAdmin, insumoController.createInsumo);
 
 /** Get All Insumos
  * @openapi
@@ -66,7 +67,7 @@ router.post('/insumos', insumoController.createInsumo);
  *                       Medida:
  *                         type: string
  */
-router.get('/insumos', insumoController.getInsumos);
+router.get('/insumos',requireAdmin, insumoController.getInsumos);
 
 /** Update Insumo
  * @openapi
@@ -101,7 +102,7 @@ router.get('/insumos', insumoController.getInsumos);
  *       '200':
  *         description: Insumo actualizado correctamente
  */
-router.put('/insumos/:id', insumoController.updateInsumo);
+router.put('/insumos/:id',requireAdmin, insumoController.updateInsumo);
 
 /** Delete Insumo
  * @openapi
@@ -121,7 +122,7 @@ router.put('/insumos/:id', insumoController.updateInsumo);
  *       '200':
  *         description: Insumo eliminado correctamente
  */
-router.delete('/insumos/:id', insumoController.deleteInsumo);
+router.delete('/insumos/:id',requireAdmin, insumoController.deleteInsumo);
 
 module.exports = {
     routes: router

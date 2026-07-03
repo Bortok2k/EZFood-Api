@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 const clientController = require('../../controllers/client.controller');
-
+const { requireAdmin, requireEmployee } = require('../../middlewares/auth.middleware');
 /** Create Client
  * @openapi
  * '/client/clients':
@@ -36,7 +36,7 @@ const clientController = require('../../controllers/client.controller');
  *       '200':
  *         description: Client created successfully
  */
-router.post('/clients', clientController.createClient);
+router.post('/clients',requireAdmin, clientController.createClient);
 
 /** Get All Clients
  * @openapi
@@ -73,7 +73,7 @@ router.post('/clients', clientController.createClient);
  *                       direccion:
  *                         type: string
  */
-router.get('/clients', clientController.getClients);
+router.get('/clients',requireAdmin, clientController.getClients);
 
 /** Get Client by NIT
  * @openapi
@@ -95,7 +95,7 @@ router.get('/clients', clientController.getClients);
  *       '404':
  *         description: Client not found
  */
-router.get('/clients/nit/:nit', clientController.getClientByNit);
+router.get('/clients/nit/:nit',requireAdmin, clientController.getClientByNit);
 
 /** Update Client
  * @openapi
@@ -132,7 +132,7 @@ router.get('/clients/nit/:nit', clientController.getClientByNit);
  *       '200':
  *         description: Client updated successfully
  */
-router.put('/clients/:id', clientController.updateClient);
+router.put('/clients/:id',requireAdmin, clientController.updateClient);
 
 /** Delete Client
  * @openapi
@@ -152,7 +152,7 @@ router.put('/clients/:id', clientController.updateClient);
  *       '200':
  *         description: Client deleted successfully
  */
-router.delete('/clients/:id', clientController.deleteClient);
+router.delete('/clients/:id',requireAdmin, clientController.deleteClient);
 
 module.exports = {
     routes: router

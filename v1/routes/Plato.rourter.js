@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 const PlatoController = require('../../controllers/Plato.controller');
+const { requireAdmin, requireEmployee } = require('../../middlewares/auth.middleware');
 
 /** Create Plato
  * @openapi
@@ -27,7 +28,7 @@ const PlatoController = require('../../controllers/Plato.controller');
  *       '200':
  *         description: Plato creado correctamente
  */
-router.post('/Platos', PlatoController.createPlato);
+router.post('/Platos',requireAdmin, PlatoController.createPlato);
 
 /** Get All Platos
  * @openapi
@@ -56,7 +57,7 @@ router.post('/Platos', PlatoController.createPlato);
  *                       Precio:
  *                         type: number
  */
-router.get('/Platos', PlatoController.getPlatos);
+router.get('/Platos',requireEmployee, PlatoController.getPlatos);
 
 /** Update Plato
  * @openapi
@@ -87,7 +88,7 @@ router.get('/Platos', PlatoController.getPlatos);
  *       '200':
  *         description: Plato actualizado correctamente
  */
-router.put('/Platos/:id', PlatoController.updatePlato);
+router.put('/Platos/:id',requireAdmin, PlatoController.updatePlato);
 
 /** Delete Plato
  * @openapi
@@ -107,7 +108,7 @@ router.put('/Platos/:id', PlatoController.updatePlato);
  *       '200':
  *         description: Plato eliminado correctamente
  */
-router.delete('/Platos/:id', PlatoController.DeletePlato);
+router.delete('/Platos/:id',requireAdmin, PlatoController.DeletePlato);
 
 module.exports = {
     routes: router

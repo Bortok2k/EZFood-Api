@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 const facturaController = require('../../controllers/factura.controller');
+const { requireAdmin, requireEmployee } = require('../../middlewares/auth.middleware');
 
 /** Create Factura
  * @openapi
@@ -27,7 +28,7 @@ const facturaController = require('../../controllers/factura.controller');
  *       '200':
  *         description: Factura creada correctamente
  */
-router.post('/facturas', facturaController.createFactura);
+router.post('/facturas',requireAdmin, facturaController.createFactura);
 
 /** Get All Facturas
  * @openapi
@@ -40,7 +41,7 @@ router.post('/facturas', facturaController.createFactura);
  *       '200':
  *         description: Successful operation
  */
-router.get('/facturas', facturaController.getFacturas);
+router.get('/facturas',requireAdmin, facturaController.getFacturas);
 
 /** Get Factura by ID
  * @openapi
@@ -61,7 +62,7 @@ router.get('/facturas', facturaController.getFacturas);
  *       '404':
  *         description: Factura no encontrada
  */
-router.get('/facturas/:id', facturaController.getFacturaById);
+router.get('/facturas/:id',requireAdmin, facturaController.getFacturaById);
 
 /** Delete Factura
  * @openapi
@@ -80,7 +81,7 @@ router.get('/facturas/:id', facturaController.getFacturaById);
  *       '200':
  *         description: Factura eliminada
  */
-router.delete('/facturas/:id', facturaController.deleteFactura);
+router.delete('/facturas/:id',requireAdmin, facturaController.deleteFactura);
 
 module.exports = {
     routes: router
