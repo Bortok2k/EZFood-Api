@@ -18,11 +18,26 @@ const options = {
         url: "http://localhost:8080/api/v1",
         description: "Local server"
       }
+    ],
+    // ← agregar esto
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+          description: 'Ingresa el token JWT obtenido del endpoint /auth'
+        }
+      }
+    },
+    security: [
+      {
+        bearerAuth: []
+      }
     ]
   },
-  // looks for configuration in specified directories
-  apis: ['./v1/routes/*.js','./documentation/components.yaml'],
-}
+  apis: ['./v1/routes/*.js', './documentation/components.yaml'],
+};
 
 const swaggerSpec = swaggerJsdoc(options);
 

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 const ordenController = require('../../controllers/Orden.controller');
-const { requireAdmin, requireEmployee } = require('../../middlewares/auth.middleware');
+const { requireEmployee } = require('../../middlewares/auth');
 
 /** Create Orden
  * @openapi
@@ -10,17 +10,26 @@ const { requireAdmin, requireEmployee } = require('../../middlewares/auth.middle
  *   post:
  *     tags:
  *       - Orden
- *     description: Create a new order with multiple dishes and state
+ *     description: Crea una nueva orden con mesa, estado y lista de platos
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - id_estado
+ *               - mesa
+ *               - platos
  *             properties:
  *               id_estado:
  *                 type: number
  *                 example: 1
+ *               mesa:
+ *                 type: string
+ *                 example: "Mesa 3"
  *               platos:
  *                 type: array
  *                 items:
@@ -35,8 +44,22 @@ const { requireAdmin, requireEmployee } = require('../../middlewares/auth.middle
  *     responses:
  *       '200':
  *         description: Orden creada correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 msg:
+ *                   type: string
+ *                   example: orden creada correctamente
+ *       '401':
+ *         description: No autorizado
+ *       '403':
+ *         description: Token inválido o no proporcionado
+ *       '500':
+ *         description: Error interno del servidor
  */
-router.post('/ordenes',requireEmployee, ordenController.createOrden);
+router.post('/ordenes', requireEmployee, ordenController.createOrden);
 
 /** Get All Ordenes
  * @openapi
@@ -44,47 +67,66 @@ router.post('/ordenes',requireEmployee, ordenController.createOrden);
  *   get:
  *     tags:
  *       - Orden
- *     description: Get all orders
+ *     description: Obtiene todas las órdenes registradas
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       '200':
- *         description: Successful operation
+ *         description: Operación exitosa
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 msg:
+ *                   type: string
+ *                   example: OK
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       orden_id:
+ *                         type: string
+ *                       mesa:
+ *                         type: string
+ *                       id_estado:
+ *                         type: number
+ *                       estado_nombre:
+ *                         type: string
+ *                       fecha:
+ *                         type: string
+ *                       hora:
+ *                         type: string
+ *                       total:
+ *                         type: number
+ *                       platos:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *       '401':
+ *         description: No autorizado
+ *       '403':
+ *         description: Token inválido o no proporcionado
  */
-router.get('/ordenes',requireEmployee, ordenController.getOrdenes);
+router.get('/ordenes', requireEmployee, ordenController.getOrdenes);
 
-/** Get Orden by ID
+/** Update Orden
  * @openapi
  * '/Orden/ordenes/{id}':
- *   get:
+ *   put:
  *     tags:
  *       - Orden
- *     description: Get order by ID
+ *     description: Actualiza los platos y el total de una orden existente
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - name: id
  *         in: path
  *         required: true
  *         schema:
  *           type: string
- *     responses:
- *       '200':
- *         description: Successful operation
- *       '404':
- *         description: Orden no encontrada
- */
-router.put('/ordenes/:id',requireEmployee, ordenController.updateOrden); 
-
-/** Update Estado Orden
- * @openapi
- * '/Orden/ordenes/{id}/estado':
- *   patch:
- *     tags:
- *       - Orden
- *     description: Update order state
- *     parameters:
- *       - name: id
- *         in: path
- *         required: true
- *         schema:
- *           type: string
+ *         description: ID de la orden
  *     requestBody:
  *       required: true
  *       content:
@@ -92,14 +134,83 @@ router.put('/ordenes/:id',requireEmployee, ordenController.updateOrden);
  *           schema:
  *             type: object
  *             properties:
+ *               platos:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     plato_id:
+ *                       type: string
+ *                     Descripcion:
+ *                       type: string
+ *                     Precio:
+ *                       type: number
+ *                     cantidad:
+ *                       type: number
+ *                     subtotal:
+ *                       type: number
+ *               total:
+ *                 type: number
+ *                 example: 38000
+ *     responses:
+ *       '200':
+ *         description: Orden actualizada correctamente
+ *       '401':
+ *         description: No autorizado
+ *       '403':
+ *         description: Token inválido o no proporcionado
+ *       '500':
+ *         description: Error interno del servidor
+ */
+router.put('/ordenes/:id', requireEmployee, ordenController.updateOrden);
+
+/** Update Estado Orden
+ * @openapi
+ * '/Orden/ordenes/{id}/estado':
+ *   patch:
+ *     tags:
+ *       - Orden
+ *     description: Actualiza el estado de una orden (ej. de Preparacion a Pagado)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de la orden
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - id_estado
+ *             properties:
  *               id_estado:
  *                 type: number
- *                 example: 2
+ *                 example: 4
  *     responses:
  *       '200':
  *         description: Estado actualizado correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 msg:
+ *                   type: string
+ *                   example: estado actualizado correctamente
+ *       '401':
+ *         description: No autorizado
+ *       '403':
+ *         description: Token inválido o no proporcionado
+ *       '500':
+ *         description: Error interno del servidor
  */
-router.patch('/ordenes/:id/estado',requireEmployee, ordenController.updateEstadoOrden);
+router.patch('/ordenes/:id/estado', requireEmployee, ordenController.updateEstadoOrden);
 
 /** Delete Orden
  * @openapi
@@ -107,19 +218,36 @@ router.patch('/ordenes/:id/estado',requireEmployee, ordenController.updateEstado
  *   delete:
  *     tags:
  *       - Orden
- *     description: Delete an order
+ *     description: Elimina una orden por ID
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - name: id
  *         in: path
  *         required: true
  *         schema:
  *           type: string
+ *         description: ID de la orden a eliminar
  *     responses:
  *       '200':
- *         description: Orden eliminada
+ *         description: Orden eliminada correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 msg:
+ *                   type: string
+ *                   example: orden eliminada correctamente
+ *       '401':
+ *         description: No autorizado
+ *       '403':
+ *         description: Token inválido o no proporcionado
+ *       '500':
+ *         description: Error interno del servidor
  */
-router.delete('/ordenes/:id',requireEmployee, ordenController.deleteOrden);
+router.delete('/ordenes/:id', requireEmployee, ordenController.deleteOrden);
 
 module.exports = {
     routes: router
-}
+};
