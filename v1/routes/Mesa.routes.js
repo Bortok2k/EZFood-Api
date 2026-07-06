@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const MesaController = require('../../controllers/Mesa.controller');
-const { requireAdmin, requireEmployee } = require('../../middlewares/auth');
+const { requireAdmin, requireEmployee } = require('../../middlewares/auth.middleware');
 
 /** Get All Mesas
  * @openapi

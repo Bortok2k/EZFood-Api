@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 const ordenController = require('../../controllers/Orden.controller');
-const { requireEmployee } = require('../../middlewares/auth');
+const { requireEmployee } = require('../../middlewares/auth.middleware');
 
 /** Create Orden
  * @openapi
