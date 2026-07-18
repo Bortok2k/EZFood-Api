@@ -2,7 +2,7 @@ const Groq = require('groq-sdk');
 const firebase = require('../database/connection');
 const firestore = firebase.firestore();
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY }); // ← variable de entorno
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 const prompts = {
     administrador: `
@@ -38,7 +38,7 @@ administración, finanzas, inventario, clientes y operación general.
 };
 
 const consultarEZBot = async (pregunta, modo = 'general') => {
-    console.log("GROQ KEY:", process.env.GROQ_API_KEY ? "OK" : "UNDEFINED");
+
     const [ordenesSnap, gastosSnap, insumosSnap, platosSnap] = await Promise.all([
         firestore.collection('Orden').get(),
         firestore.collection('Gasto').get(),
@@ -46,31 +46,56 @@ const consultarEZBot = async (pregunta, modo = 'general') => {
         firestore.collection('Plato').get()
     ]);
 
-    const ordenes = ordenesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    const gastos  = gastosSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    const insumos = insumosSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    const platos  = platosSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const todasOrdenes = ordenesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const todosGastos  = gastosSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const insumos      = insumosSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const platos       = platosSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-    const ordenesPagadas = ordenes.filter(o => o.estado_nombre === 'pagado');
-    const totalIngresos  = ordenesPagadas.reduce((sum, o) => sum + (o.total || 0), 0);
-    const totalGastos    = gastos.reduce((sum, g) => sum + (g.Costo || 0), 0);
-    const balance        = totalIngresos - totalGastos;
+    // Calcular fecha de hace 7 días
+    const hace7Dias = new Date();
+    hace7Dias.setDate(hace7Dias.getDate() - 7);
+    const fechaLimite = hace7Dias.toISOString().split('T')[0];
+
+    // Filtrar solo última semana para el detalle
+    const ordenesSemana = todasOrdenes.filter(o => 
+        o.fecha && o.fecha >= fechaLimite);
+    const gastosSemana = todosGastos.filter(g => 
+        g.Fecha && g.Fecha >= fechaLimite);
+
+    // Métricas generales con todos los datos históricos
+    const ordenesPagadas = todasOrdenes.filter(o => 
+        o.estado_nombre?.toLowerCase() === 'pagado');
+    const totalIngresos = ordenesPagadas.reduce((sum, o) => sum + (o.total || 0), 0);
+    const totalGastos   = todosGastos.reduce((sum, g) => sum + (g.Costo || 0), 0);
+    const balance       = totalIngresos - totalGastos;
+
+    // Métricas de la semana
+    const ordenesPagadasSemana = ordenesSemana.filter(o => 
+        o.estado_nombre?.toLowerCase() === 'pagado');
+    const ingresosSemana = ordenesPagadasSemana.reduce((sum, o) => sum + (o.total || 0), 0);
+    const gastosSemanaTotal = gastosSemana.reduce((sum, g) => sum + (g.Costo || 0), 0);
 
     const contexto = `
 ${prompts[modo] || prompts.general}
 
 === DATOS DEL RESTAURANTE ===
 
-RESUMEN FINANCIERO:
-- Total ingresos (órdenes pagadas): $${totalIngresos}
-- Total gastos: $${totalGastos}
-- Balance actual: $${balance}
+RESUMEN FINANCIERO HISTÓRICO:
+- Total ingresos históricos: $${totalIngresos}
+- Total gastos históricos: $${totalGastos}
+- Balance general: $${balance}
 
-ÓRDENES (${ordenes.length} total):
-${JSON.stringify(ordenes.slice(0, 20), null, 2)}
+RESUMEN FINANCIERO ÚLTIMA SEMANA (desde ${fechaLimite}):
+- Ingresos semana: $${ingresosSemana}
+- Gastos semana: $${gastosSemanaTotal}
+- Balance semana: $${ingresosSemana - gastosSemanaTotal}
+- Órdenes esta semana: ${ordenesSemana.length}
 
-GASTOS (${gastos.length} total):
-${JSON.stringify(gastos, null, 2)}
+DETALLE ÓRDENES ÚLTIMA SEMANA:
+${JSON.stringify(ordenesSemana, null, 2)}
+
+DETALLE GASTOS ÚLTIMA SEMANA:
+${JSON.stringify(gastosSemana, null, 2)}
 
 INSUMOS EN INVENTARIO:
 ${JSON.stringify(insumos, null, 2)}
