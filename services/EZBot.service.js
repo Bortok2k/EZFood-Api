@@ -51,65 +51,83 @@ const consultarEZBot = async (pregunta, modo = 'general') => {
     const insumos      = insumosSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     const platos       = platosSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-    // Calcular fecha de hace 7 días
+    // Última semana
     const hace7Dias = new Date();
     hace7Dias.setDate(hace7Dias.getDate() - 7);
     const fechaLimite = hace7Dias.toISOString().split('T')[0];
 
-    // Filtrar solo última semana para el detalle
-    const ordenesSemana = todasOrdenes.filter(o => 
-        o.fecha && o.fecha >= fechaLimite);
-    const gastosSemana = todosGastos.filter(g => 
-        g.Fecha && g.Fecha >= fechaLimite);
+    const ordenesSemana = todasOrdenes.filter(o => o.fecha && o.fecha >= fechaLimite);
+    const gastosSemana  = todosGastos.filter(g => g.Fecha && g.Fecha >= fechaLimite);
 
-    // Métricas generales con todos los datos históricos
-    const ordenesPagadas = todasOrdenes.filter(o => 
-        o.estado_nombre?.toLowerCase() === 'pagado');
-    const totalIngresos = ordenesPagadas.reduce((sum, o) => sum + (o.total || 0), 0);
-    const totalGastos   = todosGastos.reduce((sum, g) => sum + (g.Costo || 0), 0);
-    const balance       = totalIngresos - totalGastos;
+    // Métricas históricas — solo números
+    const ordenesPagadas = todasOrdenes.filter(o => o.estado_nombre?.toLowerCase() === 'pagado');
+    const totalIngresos  = ordenesPagadas.reduce((sum, o) => sum + (o.total || 0), 0);
+    const totalGastos    = todosGastos.reduce((sum, g) => sum + (g.Costo || 0), 0);
 
-    // Métricas de la semana
-    const ordenesPagadasSemana = ordenesSemana.filter(o => 
-        o.estado_nombre?.toLowerCase() === 'pagado');
-    const ingresosSemana = ordenesPagadasSemana.reduce((sum, o) => sum + (o.total || 0), 0);
-    const gastosSemanaTotal = gastosSemana.reduce((sum, g) => sum + (g.Costo || 0), 0);
+    // Métricas semanales — solo números
+    const ordenesPagadasSemana  = ordenesSemana.filter(o => o.estado_nombre?.toLowerCase() === 'pagado');
+    const ingresosSemana        = ordenesPagadasSemana.reduce((sum, o) => sum + (o.total || 0), 0);
+    const gastosSemanaTotal     = gastosSemana.reduce((sum, g) => sum + (g.Costo || 0), 0);
+
+    // ← Resumir datos antes de enviar al modelo
+    const ordenesSemanaResumen = ordenesSemana.map(o => ({
+        mesa: o.mesa,
+        fecha: o.fecha,
+        total: o.total,
+        estado: o.estado_nombre,
+        platos: o.platos?.map(p => `${p.cantidad}x ${p.Descripcion}`)
+    }));
+
+    const gastosSemanaResumen = gastosSemana.map(g => ({
+        descripcion: g.Descripcion,
+        costo: g.Costo,
+        fecha: g.Fecha
+    }));
+
+    const insumosResumen = insumos.map(i => ({
+        nombre: i.Descripcion,
+        cantidad: i.Cantidad,
+        medida: i.Medida
+    }));
+
+    const platosResumen = platos.map(p => ({
+        nombre: p.Descripcion,
+        precio: p.Precio
+    }));
 
     const contexto = `
 ${prompts[modo] || prompts.general}
 
 === DATOS DEL RESTAURANTE ===
 
-RESUMEN FINANCIERO HISTÓRICO:
-- Total ingresos históricos: $${totalIngresos}
-- Total gastos históricos: $${totalGastos}
-- Balance general: $${balance}
+RESUMEN HISTÓRICO:
+- Ingresos totales: $${totalIngresos}
+- Gastos totales: $${totalGastos}
+- Balance general: $${totalIngresos - totalGastos}
 
-RESUMEN FINANCIERO ÚLTIMA SEMANA (desde ${fechaLimite}):
-- Ingresos semana: $${ingresosSemana}
-- Gastos semana: $${gastosSemanaTotal}
+ÚLTIMA SEMANA (desde ${fechaLimite}):
+- Ingresos: $${ingresosSemana}
+- Gastos: $${gastosSemanaTotal}
 - Balance semana: $${ingresosSemana - gastosSemanaTotal}
-- Órdenes esta semana: ${ordenesSemana.length}
+- Órdenes: ${ordenesSemana.length}
 
-DETALLE ÓRDENES ÚLTIMA SEMANA:
-${JSON.stringify(ordenesSemana, null, 2)}
+ÓRDENES SEMANA:
+${JSON.stringify(ordenesSemanaResumen)}
 
-DETALLE GASTOS ÚLTIMA SEMANA:
-${JSON.stringify(gastosSemana, null, 2)}
+GASTOS SEMANA:
+${JSON.stringify(gastosSemanaResumen)}
 
-INSUMOS EN INVENTARIO:
-${JSON.stringify(insumos, null, 2)}
+INVENTARIO:
+${JSON.stringify(insumosResumen)}
 
-PLATOS DEL MENÚ:
-${JSON.stringify(platos, null, 2)}
+MENÚ:
+${JSON.stringify(platosResumen)}
 
-=== PREGUNTA DEL USUARIO ===
-${pregunta}
-    `;
+PREGUNTA: ${pregunta}`;
 
     const completion = await groq.chat.completions.create({
         messages: [{ role: 'user', content: contexto }],
-        model: 'llama-3.3-70b-versatile',
+        model: 'llama-3.1-8b-instant', // ← modelo con más tokens gratis
         max_tokens: 1024
     });
 
