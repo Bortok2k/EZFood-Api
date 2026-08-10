@@ -22,7 +22,9 @@ const createOrden = async (req, res) => {
 
 const getOrdenes = async (req, res) => {
     try {
-        const data = await ordenService.getOrdenes();
+        const { estado_nombre } = req.query; // undefined si no se manda
+
+        const data = await ordenService.getOrdenes(estado_nombre);
 
         if (data.length === 0) {
             return res.status(404).json({
@@ -37,7 +39,6 @@ const getOrdenes = async (req, res) => {
 
     } catch (e) {
         console.error(e);
-
         res.status(500).json({
             msg: 'Internal server error'
         });

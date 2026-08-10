@@ -63,13 +63,15 @@ const CreateOrden = async (data) => {
     }
 };
 
-const getOrdenes = async () => {
-    const snapshot = await firestore.collection('Orden').get();
+const getOrdenes = async (estadoNombre) => {
+    let query = firestore.collection('Orden');
 
-    return snapshot.docs.map(doc => ({
-        orden_id: doc.id,
-        ...doc.data()
-    }));
+    if (estadoNombre) {
+        query = query.where('estado_nombre', '==', estadoNombre);
+    }
+
+    const snapshot = await query.get();
+    return snapshot.docs.map(doc => ({ orden_id: doc.id, ...doc.data() }));
 };
 
 const updateOrden = async (id, data) => {
