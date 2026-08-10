@@ -3,7 +3,6 @@ const firestore = firebase.firestore();
 
 const CreateOrden = async (data) => {
     try {
-        // ✅ AQUÍ está la solución
         const { id_estado, platos, mesa } = data;
 
         if (!id_estado) {

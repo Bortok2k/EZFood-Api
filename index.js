@@ -21,6 +21,7 @@ const facturaRoutes = require('./v1/routes/factura.router');
 const swaggerDocs = require('./documentation/swagger');
 const FacturaRoutes = require('./v1/routes/FacturaElectronica.router');
 const MesaRoutes = require('./v1/routes/Mesa.routes');
+const DianMockRoutes = require('./v1/routes/DianMock.router');
 
 
 
@@ -53,6 +54,7 @@ app.use('/api/v1/factura', facturaRoutes.routes);
 app.use('/api/v1/EZBot', EZBotRoutes.routes);
 app.use('/api/v1/FacturaElectronica', FacturaRoutes.routes);
 app.use('/api/v1/Mesa', MesaRoutes.routes);
+app.use('/api/v1/dian-mock', DianMockRoutes.routes);
 
 //#endregion
 
