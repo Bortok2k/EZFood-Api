@@ -127,7 +127,7 @@ PREGUNTA: ${pregunta}`;
 
     const completion = await groq.chat.completions.create({
         messages: [{ role: 'user', content: contexto }],
-        model: 'llama-3.1-8b-instant', // ← modelo con más tokens gratis
+        model: 'openai/gpt-oss-120b',
         max_tokens: 1024
     });
 
