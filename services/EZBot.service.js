@@ -128,7 +128,8 @@ PREGUNTA: ${pregunta}`;
     const completion = await groq.chat.completions.create({
         messages: [{ role: 'user', content: contexto }],
         model: 'openai/gpt-oss-120b',
-        max_tokens: 1024
+        max_tokens: 2048,
+        reasoning_effort: 'low'
     });
 
     return completion.choices[0]?.message?.content ?? 'No pude obtener respuesta.';
