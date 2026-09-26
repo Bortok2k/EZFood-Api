@@ -68,7 +68,7 @@ const CreateOrden = async (data) => {
             total
         });
 
-        cache.invalidate('ordenes');
+        cache.invalidatePrefix('ordenes');
         return nuevaOrden;
 
     } catch (error) {
@@ -90,15 +90,37 @@ const getOrdenes = async () => {
     return data;
 };
 
+// Filtra en Firestore (where), no trae la colección completa para
+// luego descartar todo lo que no está en ese estado. Se cachea por
+// separado de getOrdenes() porque son consultas distintas.
+const getOrdenesPorEstado = async (estadoNombre) => {
+    const cacheKey = `ordenes_estado_${estadoNombre}`;
+    const cached = cache.get(cacheKey, CACHE_TTL);
+    if (cached) return cached;
+
+    const snapshot = await firestore
+        .collection('Orden')
+        .where('estado_nombre', '==', estadoNombre)
+        .get();
+
+    const data = snapshot.docs.map(doc => ({
+        orden_id: doc.id,
+        ...doc.data()
+    }));
+
+    cache.set(cacheKey, data);
+    return data;
+};
+
 const updateOrden = async (id, data) => {
     const result = await firestore.collection('Orden').doc(id).update(data);
-    cache.invalidate('ordenes');
+    cache.invalidatePrefix('ordenes');
     return result;
 };
 
 const deleteOrden = async (id) => {
     const result = await firestore.collection('Orden').doc(id).delete();
-    cache.invalidate('ordenes');
+    cache.invalidatePrefix('ordenes');
     return result;
 };
 
@@ -119,13 +141,14 @@ const updateEstadoOrden = async (orden_id, id_estado) => {
         estado_nombre: estadoData.estado
     });
 
-    cache.invalidate('ordenes');
+    cache.invalidatePrefix('ordenes');
     return result;
 };
 
 module.exports = {
     CreateOrden,
     getOrdenes,
+    getOrdenesPorEstado,
     updateOrden,
     deleteOrden,
     updateEstadoOrden

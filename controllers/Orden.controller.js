@@ -17,14 +17,15 @@ const createOrden = async (req, res) => {
             msg: e.message || 'Internal server error'
         });
     }
-            console.log("BODY COMPLETO:", req.body);
 };
 
 const getOrdenes = async (req, res) => {
     try {
-        const { estado_nombre } = req.query; // undefined si no se manda
+        const { estado } = req.query;
 
-        const data = await ordenService.getOrdenes(estado_nombre);
+        const data = estado
+            ? await ordenService.getOrdenesPorEstado(estado)
+            : await ordenService.getOrdenes();
 
         if (data.length === 0) {
             return res.status(404).json({
@@ -39,6 +40,7 @@ const getOrdenes = async (req, res) => {
 
     } catch (e) {
         console.error(e);
+
         res.status(500).json({
             msg: 'Internal server error'
         });
