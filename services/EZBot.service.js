@@ -39,19 +39,30 @@ administración, finanzas, inventario, clientes y operación general.
     `
 };
 
+// Fecha de corte: hoy - 30 días, en formato 'YYYY-MM-DD' (mismo formato
+// que usan Orden.service y Gasto.service al guardar fecha/Fecha).
+const getFechaCorte = () => {
+    const hace30Dias = new Date();
+    hace30Dias.setDate(hace30Dias.getDate() - 30);
+    return hace30Dias.toISOString().split('T')[0];
+};
+
 const consultarEZBot = async (pregunta, modo = 'general') => {
     console.log("GROQ KEY:", process.env.GROQ_API_KEY ? "OK" : "UNDEFINED");
 
-    // Antes: 4 firestore.collection(...).get() completos en CADA pregunta.
-    // Ahora: se reutilizan los mismos servicios (y su caché TTL) que usan
-    // Balance, Caja e Inventario, así que si esos datos ya se cargaron
-    // recientemente, esto no genera lecturas nuevas a Firestore.
-    const [ordenes, gastos, insumos, platos] = await Promise.all([
+    const [ordenesTotal, gastosTotal, insumos, platos] = await Promise.all([
         OrdenService.getOrdenes(),
         GastoService.GetGasto(),
         InsumoService.getInsumos(),
         PlatoService.getPlatos()
     ]);
+
+    const fechaCorte = getFechaCorte();
+
+    // Filtrar solo el último mes (comparación de strings 'YYYY-MM-DD' funciona
+    // porque el formato ISO es lexicográficamente ordenable).
+    const ordenes = ordenesTotal.filter(o => o.fecha && o.fecha >= fechaCorte);
+    const gastos = gastosTotal.filter(g => g.Fecha && g.Fecha >= fechaCorte);
 
     const ordenesPagadas = ordenes.filter(o => o.estado_nombre === 'pagado');
     const totalIngresos  = ordenesPagadas.reduce((sum, o) => sum + (o.total || 0), 0);
@@ -61,17 +72,17 @@ const consultarEZBot = async (pregunta, modo = 'general') => {
     const contexto = `
 ${prompts[modo] || prompts.general}
 
-=== DATOS DEL RESTAURANTE ===
+=== DATOS DEL RESTAURANTE (ÚLTIMOS 30 DÍAS) ===
 
-RESUMEN FINANCIERO:
+RESUMEN FINANCIERO (último mes):
 - Total ingresos (órdenes pagadas): $${totalIngresos}
 - Total gastos: $${totalGastos}
-- Balance actual: $${balance}
+- Balance del período: $${balance}
 
-ÓRDENES (${ordenes.length} total):
+ÓRDENES DEL ÚLTIMO MES (${ordenes.length} de ${ordenesTotal.length} totales):
 ${JSON.stringify(ordenes.slice(0, 20), null, 2)}
 
-GASTOS (${gastos.length} total):
+GASTOS DEL ÚLTIMO MES (${gastos.length} de ${gastosTotal.length} totales):
 ${JSON.stringify(gastos.slice(0, 20), null, 2)}
 
 INSUMOS EN INVENTARIO:
@@ -90,7 +101,6 @@ ${pregunta}
         max_tokens: 2048,
         reasoning_effort: 'low'
     });
-
 
     return completion.choices[0]?.message?.content ?? 'No pude obtener respuesta.';
 };
