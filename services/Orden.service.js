@@ -1,5 +1,9 @@
 const firebase = require('../database/connection');
+const cache = require('../utils/cache');
+const PlatoService = require('./Plato.service');
 const firestore = firebase.firestore();
+
+const CACHE_TTL = 60 * 1000; // 60s
 
 const CreateOrden = async (data) => {
     try {
@@ -13,7 +17,7 @@ const CreateOrden = async (data) => {
             throw new Error('platos debe ser un array');
         }
 
-        // 🔥 validar estado
+        // Validar estado
         const estadoSnapshot = await firestore
             .collection('Estado')
             .where('id_estado', '==', id_estado)
@@ -25,22 +29,28 @@ const CreateOrden = async (data) => {
 
         const estadoData = estadoSnapshot.docs[0].data();
 
+        // En vez de un doc.get() por cada plato del pedido, se usa
+        // el catálogo cacheado de Plato.service (misma lista que /Plato/Platos)
+        const catalogoPlatos = await PlatoService.getPlatos();
+
         let total = 0;
         let platosData = [];
 
         for (let item of platos) {
             const { plato_id, cantidad } = item;
 
-            const doc = await firestore.collection('Plato').doc(plato_id).get();
+            const plato = catalogoPlatos.find(p => p.plato_id === plato_id);
+            if (!plato) {
+                throw new Error(`plato ${plato_id} no encontrado`);
+            }
 
-            const plato = doc.data();
+            const { plato_id: _omit, ...platoData } = plato;
             const subtotal = plato.Precio * cantidad;
-
             total += subtotal;
 
             platosData.push({
-                plato_id: doc.id,
-                ...plato,
+                plato_id,
+                ...platoData,
                 cantidad,
                 subtotal
             });
@@ -48,42 +58,51 @@ const CreateOrden = async (data) => {
 
         const now = new Date();
 
-        return await firestore.collection('Orden').add({
-        id_estado,
-        estado_nombre: estadoData.estado,
-        mesa: mesa || "Mesa sin asignar",   // ← agregar
-        fecha: now.toISOString().split('T')[0],
-        hora: now.toTimeString().split(' ')[0],
-        platos: platosData,
-        total
-    });
+        const nuevaOrden = await firestore.collection('Orden').add({
+            id_estado,
+            estado_nombre: estadoData.estado,
+            mesa: mesa || "Mesa sin asignar",
+            fecha: now.toISOString().split('T')[0],
+            hora: now.toTimeString().split(' ')[0],
+            platos: platosData,
+            total
+        });
+
+        cache.invalidate('ordenes');
+        return nuevaOrden;
 
     } catch (error) {
         throw error;
     }
 };
 
-const getOrdenes = async (estadoNombre) => {
-    let query = firestore.collection('Orden');
+const getOrdenes = async () => {
+    const cached = cache.get('ordenes', CACHE_TTL);
+    if (cached) return cached;
 
-    if (estadoNombre) {
-        query = query.where('estado_nombre', '==', estadoNombre);
-    }
+    const snapshot = await firestore.collection('Orden').get();
+    const data = snapshot.docs.map(doc => ({
+        orden_id: doc.id,
+        ...doc.data()
+    }));
 
-    const snapshot = await query.get();
-    return snapshot.docs.map(doc => ({ orden_id: doc.id, ...doc.data() }));
+    cache.set('ordenes', data);
+    return data;
 };
 
 const updateOrden = async (id, data) => {
-    return await firestore.collection('Orden').doc(id).update(data);
+    const result = await firestore.collection('Orden').doc(id).update(data);
+    cache.invalidate('ordenes');
+    return result;
 };
 
 const deleteOrden = async (id) => {
-    return await firestore.collection('Orden').doc(id).delete();
+    const result = await firestore.collection('Orden').doc(id).delete();
+    cache.invalidate('ordenes');
+    return result;
 };
 
 const updateEstadoOrden = async (orden_id, id_estado) => {
-    // 🔥 validar estado
     const estadoSnapshot = await firestore
         .collection('Estado')
         .where('id_estado', '==', id_estado)
@@ -95,10 +114,13 @@ const updateEstadoOrden = async (orden_id, id_estado) => {
 
     const estadoData = estadoSnapshot.docs[0].data();
 
-    return await firestore.collection('Orden').doc(orden_id).update({
+    const result = await firestore.collection('Orden').doc(orden_id).update({
         id_estado,
         estado_nombre: estadoData.estado
     });
+
+    cache.invalidate('ordenes');
+    return result;
 };
 
 module.exports = {
