@@ -39,8 +39,6 @@ administración, finanzas, inventario, clientes y operación general.
     `
 };
 
-// Fecha de corte: hoy - 30 días, en formato 'YYYY-MM-DD' (mismo formato
-// que usan Orden.service y Gasto.service al guardar fecha/Fecha).
 const getFechaCorte = () => {
     const hace30Dias = new Date();
     hace30Dias.setDate(hace30Dias.getDate() - 30);
@@ -59,8 +57,6 @@ const consultarEZBot = async (pregunta, modo = 'general') => {
 
     const fechaCorte = getFechaCorte();
 
-    // Filtrar solo el último mes (comparación de strings 'YYYY-MM-DD' funciona
-    // porque el formato ISO es lexicográficamente ordenable).
     const ordenes = ordenesTotal.filter(o => o.fecha && o.fecha >= fechaCorte);
     const gastos = gastosTotal.filter(g => g.Fecha && g.Fecha >= fechaCorte);
 
@@ -69,27 +65,64 @@ const consultarEZBot = async (pregunta, modo = 'general') => {
     const totalGastos    = gastos.reduce((sum, g) => sum + (g.Costo || 0), 0);
     const balance        = totalIngresos - totalGastos;
 
+    // --- Agregar ventas por plato en vez de mandar cada orden completa ---
+    const ventasPorPlato = {};
+    for (const orden of ordenesPagadas) {
+        for (const p of (orden.platos || [])) {
+            const key = p.Descripcion || p.plato_id;
+            if (!ventasPorPlato[key]) ventasPorPlato[key] = { cantidad: 0, ingresos: 0 };
+            ventasPorPlato[key].cantidad += p.cantidad || 0;
+            ventasPorPlato[key].ingresos += p.subtotal || 0;
+        }
+    }
+    const topPlatos = Object.entries(ventasPorPlato)
+        .map(([nombre, datos]) => ({ nombre, ...datos }))
+        .sort((a, b) => b.cantidad - a.cantidad)
+        .slice(0, 10);
+
+    // --- Gastos: solo campos esenciales, agrupados por tipo también ---
+    const gastosPorTipo = {};
+    for (const g of gastos) {
+        const tipo = g.Tipo || 'otro';
+        gastosPorTipo[tipo] = (gastosPorTipo[tipo] || 0) + (g.Costo || 0);
+    }
+    const gastosResumen = gastos
+        .slice(0, 15)
+        .map(g => ({ Fecha: g.Fecha, Descripcion: g.Descripcion, Costo: g.Costo }));
+
+    // --- Catálogos: solo campos relevantes, sin ids ---
+    const insumosResumen = insumos.map(i => ({
+        Descripcion: i.Descripcion, Cantidad: i.Cantidad, Medida: i.Medida
+    }));
+    const platosResumen = platos.map(p => ({
+        Descripcion: p.Descripcion, Precio: p.Precio
+    }));
+
     const contexto = `
 ${prompts[modo] || prompts.general}
 
 === DATOS DEL RESTAURANTE (ÚLTIMOS 30 DÍAS) ===
 
-RESUMEN FINANCIERO (último mes):
-- Total ingresos (órdenes pagadas): $${totalIngresos}
+RESUMEN FINANCIERO:
+- Órdenes pagadas: ${ordenesPagadas.length} de ${ordenes.length} en el período
+- Total ingresos: $${totalIngresos}
 - Total gastos: $${totalGastos}
 - Balance del período: $${balance}
 
-ÓRDENES DEL ÚLTIMO MES (${ordenes.length} de ${ordenesTotal.length} totales):
-${JSON.stringify(ordenes.slice(0, 20), null, 2)}
+GASTOS POR TIPO:
+${JSON.stringify(gastosPorTipo)}
 
-GASTOS DEL ÚLTIMO MES (${gastos.length} de ${gastosTotal.length} totales):
-${JSON.stringify(gastos.slice(0, 20), null, 2)}
+TOP 10 PLATOS MÁS VENDIDOS:
+${JSON.stringify(topPlatos)}
+
+GASTOS RECIENTES (máx. 15):
+${JSON.stringify(gastosResumen)}
 
 INSUMOS EN INVENTARIO:
-${JSON.stringify(insumos, null, 2)}
+${JSON.stringify(insumosResumen)}
 
 PLATOS DEL MENÚ:
-${JSON.stringify(platos, null, 2)}
+${JSON.stringify(platosResumen)}
 
 === PREGUNTA DEL USUARIO ===
 ${pregunta}
